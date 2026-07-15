@@ -1,0 +1,10 @@
+{
+  "log_groups": ["/digitide/postmortem-demo", "/aws/ec2/payment-service", "/aws/ec2/order-service"],
+  "recent_errors": [
+    {"time": "2026-06-23T06:44:00Z", "service": "PaymentService", "level": "ERROR", "message": "Gateway timeout after 3000ms"},
+    {"time": "2026-06-23T06:44:35Z", "service": "PaymentService", "level": "ERROR", "message": "Retry 1 failed: connection refused"},
+    {"time": "2026-06-23T06:46:09Z", "service": "PaymentService", "level": "FATAL", "message": "Circuit breaker OPEN"},
+    {"time": "2026-06-22T18:50:00Z", "service": "AuthService", "level": "ERROR", "message": "Token validation failed: secret mismatch"},
+    {"time": "2026-06-22T18:51:00Z", "service": "APIGateway", "level": "ERROR", "message": "401 Unauthorized spike: 2400 requests in 60s"}
+  ]
+}

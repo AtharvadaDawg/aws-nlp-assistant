@@ -1,0 +1,8 @@
+.env
+backend/pending_actions.json
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+dist/
+.vite/

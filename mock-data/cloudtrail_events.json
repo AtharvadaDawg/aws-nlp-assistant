@@ -1,0 +1,9 @@
+{
+  "events": [
+    {"time": "2026-06-23T10:15:00Z", "user": "deploy-bot", "action": "RunInstances", "resource": "payment-service-prod", "region": "ap-south-1"},
+    {"time": "2026-06-23T09:30:00Z", "user": "atharva@digitide.com", "action": "UpdateSecurityGroup", "resource": "sg-payment-prod", "region": "ap-south-1"},
+    {"time": "2026-06-22T18:45:00Z", "user": "deploy-bot", "action": "DeployStack", "resource": "auth-service-v2.14.0", "region": "ap-south-1"},
+    {"time": "2026-06-22T14:20:00Z", "user": "atharva@digitide.com", "action": "CreateLogGroup", "resource": "/digitide/postmortem-demo", "region": "ap-south-1"},
+    {"time": "2026-06-21T11:00:00Z", "user": "deploy-bot", "action": "UpdateAutoScalingGroup", "resource": "order-service-asg", "region": "ap-south-1"}
+  ]
+}

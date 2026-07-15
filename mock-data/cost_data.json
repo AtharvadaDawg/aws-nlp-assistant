@@ -1,0 +1,13 @@
+{
+  "current_month": {"total": 1284.50, "currency": "USD"},
+  "last_month": {"total": 1147.20, "currency": "USD"},
+  "by_service": [
+    {"service": "Amazon EC2", "cost": 640.20},
+    {"service": "Amazon RDS", "cost": 320.10},
+    {"service": "Amazon CloudWatch", "cost": 145.80},
+    {"service": "Amazon S3", "cost": 98.40},
+    {"service": "AWS Lambda", "cost": 80.00}
+  ],
+  "trend": "up",
+  "change_pct": 11.97
+}

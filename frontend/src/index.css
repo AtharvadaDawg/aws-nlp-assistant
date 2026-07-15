@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-surface text-ink antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 font-bold text-sm uppercase tracking-label
+      bg-neon-cyan text-surface border-2 border-neon-cyan
+      transition-all disabled:opacity-40 disabled:cursor-not-allowed
+      hover:enabled:bg-surface hover:enabled:text-neon-cyan;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-3 font-bold text-sm uppercase tracking-wide
+      bg-neon-cyan text-surface border-2 border-neon-cyan
+      transition-all hover:bg-surface hover:text-neon-cyan;
+  }
+
+  .btn-ghost {
+    @apply w-full text-left px-3 py-2 text-sm transition-all
+      bg-transparent text-ink-muted border border-line
+      hover:text-neon-cyan hover:border-neon-cyan;
+  }
+
+  .btn-confirm {
+    @apply px-4 py-2 text-xs font-bold uppercase tracking-label
+      bg-neon-lime text-surface border-2 border-neon-lime
+      disabled:opacity-40;
+  }
+
+  .btn-cancel {
+    @apply px-4 py-2 text-xs font-bold uppercase tracking-label
+      bg-transparent text-ink-muted border-2 border-line
+      disabled:opacity-40;
+  }
+
+  .input-field {
+    @apply flex-1 px-4 py-3 text-sm font-medium bg-surface-raised text-ink
+      border-2 border-line focus:outline-none focus:border-neon-cyan
+      disabled:opacity-50;
+  }
+
+  .panel {
+    @apply bg-surface-raised text-ink border-2 border-line;
+  }
+
+  .panel-user {
+    @apply bg-neon-cyan text-surface border-2 border-neon-cyan;
+  }
+
+  .panel-error {
+    @apply bg-neon-pink text-ink border-2 border-neon-pink;
+  }
+
+  .label-heading {
+    @apply text-xs font-bold uppercase text-neon-cyan tracking-label;
+  }
+
+  .chip {
+    @apply text-left px-4 py-3 font-medium transition-all
+      border-2 border-neon-cyan text-ink bg-surface
+      hover:bg-neon-cyan hover:text-surface;
+  }
+
+  .history-item {
+    @apply w-full text-left px-3 py-2 text-sm transition-all
+      border border-line bg-surface-raised text-ink
+      hover:bg-neon-cyan hover:text-surface;
+  }
+}

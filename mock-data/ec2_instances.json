@@ -1,0 +1,9 @@
+{
+  "instances": [
+    {"id": "i-0abc123def456", "name": "payment-service-prod", "type": "t3.medium", "state": "running", "cpu_avg": 34, "region": "ap-south-1"},
+    {"id": "i-0def456abc789", "name": "auth-service-prod", "type": "t3.small", "state": "running", "cpu_avg": 18, "region": "ap-south-1"},
+    {"id": "i-0ghi789jkl012", "name": "order-service-prod", "type": "t3.medium", "state": "running", "cpu_avg": 72, "region": "ap-south-1"},
+    {"id": "i-0jkl012mno345", "name": "database-primary", "type": "r5.large", "state": "running", "cpu_avg": 45, "region": "ap-south-1"},
+    {"id": "i-0mno345pqr678", "name": "inventory-service-prod", "type": "t3.small", "state": "stopped", "cpu_avg": 0, "region": "ap-south-1"}
+  ]
+}
