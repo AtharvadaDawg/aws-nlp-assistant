@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import json
@@ -16,9 +18,15 @@ from action_engine import build_proposal, execute_action
 
 app = FastAPI(title="AWS NLP Assistant")
 
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+if allowed_origins_env:
+    origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+else:
+    origins = ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -186,3 +194,16 @@ def suggestions():
             "Create an alarm for high CPU on the database",
         ]
     }
+
+# ── Serve Frontend Static Files ──────────────────────────────────────────────
+
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend/dist"))
+if os.path.exists(frontend_dist):
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
+
+    @app.get("/{fallback_path:path}")
+    def serve_frontend(fallback_path: str):
+        index_file = os.path.join(frontend_dist, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+        return {"error": "Frontend build files not found"}

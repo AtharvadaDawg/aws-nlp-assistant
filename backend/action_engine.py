@@ -31,13 +31,49 @@ MOCK_INSTANCE_MAP = {
     "inventory":              "i-0mno345pqr678",
 }
 
-def resolve_instance(service_name: str) -> dict:
+def resolve_instance(service_name: str, run_real: bool = False) -> dict:
     if not service_name:
         return {"error": "No service name provided"}
+    
     name = service_name.lower().replace(" ", "-")
+    
+    if run_real:
+        try:
+            ec2 = get_aws_client("ec2")
+            # 1. Direct instance ID resolution
+            if service_name.startswith("i-") and len(service_name) in (10, 19):
+                resp = ec2.describe_instances(InstanceIds=[service_name])
+                for reservation in resp.get("Reservations", []):
+                    for inst in reservation.get("Instances", []):
+                        inst_name = service_name
+                        for tag in inst.get("Tags", []):
+                            if tag.get("Key") == "Name":
+                                inst_name = tag.get("Value")
+                        return {"instance_id": service_name, "name": inst_name}
+            
+            # 2. Lookup by Name Tag substring match
+            resp = ec2.describe_instances()
+            for reservation in resp.get("Reservations", []):
+                for inst in reservation.get("Instances", []):
+                    inst_id = inst["InstanceId"]
+                    inst_name = ""
+                    for tag in inst.get("Tags", []):
+                        if tag.get("Key") == "Name":
+                            inst_name = tag.get("Value")
+                    
+                    if inst_name and (name in inst_name.lower() or inst_name.lower() in name):
+                        return {"instance_id": inst_id, "name": inst_name}
+                    
+                    if name in inst_id.lower() or inst_id.lower() in name:
+                        return {"instance_id": inst_id, "name": inst_name or inst_id}
+        except Exception as e:
+            print(f"[DEBUG] AWS instance resolution failed: {str(e)}")
+            
+    # Mock fallback
     for key, iid in MOCK_INSTANCE_MAP.items():
         if key in name or name in key:
             return {"instance_id": iid, "name": key}
+            
     return {"error": f"Could not find instance for '{service_name}'"}
 
 # ── Mock actions ──────────────────────────────────────────────────────────────
@@ -313,7 +349,6 @@ def real_scale_asg(asg_name: str, desired_capacity: int = 0, scale_by: int = 1) 
 
 def build_proposal(skill: str, extracted: dict) -> dict:
     service = extracted.get("service_name") or "the service"
-    iid = extracted.get("instance_id") or resolve_instance(service).get("instance_id", "unknown")
     
     from aws_client_factory import aws_credentials_context
     ctx = aws_credentials_context.get()
@@ -321,6 +356,9 @@ def build_proposal(skill: str, extracted: dict) -> dict:
     is_mock = False if has_dynamic_creds else MOCK_MODE
     active_region = get_active_region()
     mode = "MOCK" if is_mock else "LIVE AWS"
+    
+    resolved = resolve_instance(service, run_real=not is_mock)
+    iid = extracted.get("instance_id") or resolved.get("instance_id", "unknown")
 
     proposals = {
         "action_restart": {
@@ -376,18 +414,19 @@ def build_proposal(skill: str, extracted: dict) -> dict:
 
 def execute_action(skill: str, extracted: dict, use_real_aws: bool = False) -> dict:
     service = extracted.get("service_name") or "the service"
-    resolved = resolve_instance(service)
-    
-    if "error" in resolved and skill in ("action_restart", "action_stop"):
-        return {"success": False, "message": resolved["error"]}
-
-    iid = resolved.get("instance_id", "unknown")
     
     from aws_client_factory import aws_credentials_context
     ctx = aws_credentials_context.get()
     has_dynamic_creds = ctx and ctx.get("access_key_id") and ctx.get("secret_access_key")
     is_mock = False if has_dynamic_creds else MOCK_MODE
     run_real = True if has_dynamic_creds else use_real_aws
+
+    resolved = resolve_instance(service, run_real=run_real and not is_mock)
+    
+    if "error" in resolved and skill in ("action_restart", "action_stop"):
+        return {"success": False, "message": resolved["error"]}
+
+    iid = resolved.get("instance_id", "unknown")
 
     if skill == "action_restart":
         if run_real and not is_mock:

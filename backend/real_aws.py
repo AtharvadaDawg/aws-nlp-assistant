@@ -330,3 +330,128 @@ def get_cost_optimization() -> dict:
             "unattached_volumes": [],
             "error": str(e)
         }
+
+def get_lambda_status() -> dict:
+    try:
+        client = boto3.client("lambda", region_name=REGION)
+        resp = client.list_functions()
+        functions = []
+        for fn in resp.get("Functions", []):
+            functions.append({
+                "name": fn["FunctionName"],
+                "runtime": fn.get("Runtime", "unknown"),
+                "handler": fn.get("Handler", "unknown"),
+                "size_bytes": fn.get("CodeSize", 0),
+                "last_modified": fn.get("LastModified", "")
+            })
+        return {"functions": functions}
+    except ClientError as e:
+        return {"functions": [], "error": str(e)}
+
+def get_dynamodb_status() -> dict:
+    try:
+        client = boto3.client("dynamodb", region_name=REGION)
+        resp = client.list_tables()
+        tables = []
+        for name in resp.get("TableNames", []):
+            try:
+                desc = client.describe_table(TableName=name)
+                t = desc.get("Table", {})
+                tables.append({
+                    "name": name,
+                    "status": t.get("TableStatus", "unknown"),
+                    "item_count": t.get("ItemCount", 0),
+                    "size_bytes": t.get("TableSizeBytes", 0)
+                })
+            except ClientError:
+                tables.append({
+                    "name": name,
+                    "status": "unknown",
+                    "item_count": 0,
+                    "size_bytes": 0
+                })
+        return {"tables": tables}
+    except ClientError as e:
+        return {"tables": [], "error": str(e)}
+
+def get_sqs_status() -> dict:
+    try:
+        client = boto3.client("sqs", region_name=REGION)
+        resp = client.list_queues()
+        queues = []
+        urls = resp.get("QueueUrls", [])
+        for url in urls[:10]:
+            name = url.split("/")[-1]
+            try:
+                attrs = client.get_queue_attributes(
+                    QueueUrl=url,
+                    AttributeNames=["ApproximateNumberOfMessages", "ApproximateNumberOfMessagesNotVisible"]
+                )
+                a = attrs.get("Attributes", {})
+                queues.append({
+                    "name": name,
+                    "visible_messages": int(a.get("ApproximateNumberOfMessages", 0)),
+                    "invisible_messages": int(a.get("ApproximateNumberOfMessagesNotVisible", 0)),
+                    "url": url
+                })
+            except ClientError:
+                queues.append({
+                    "name": name,
+                    "visible_messages": 0,
+                    "invisible_messages": 0,
+                    "url": url
+                })
+        return {"queues": queues}
+    except ClientError as e:
+        return {"queues": [], "error": str(e)}
+
+def get_iam_status() -> dict:
+    try:
+        client = boto3.client("iam")
+        resp = client.list_users()
+        users = []
+        for u in resp.get("Users", []):
+            name = u["UserName"]
+            mfa_active = False
+            try:
+                mfa = client.list_mfa_devices(UserName=name)
+                mfa_active = len(mfa.get("MFADevices", [])) > 0
+            except ClientError:
+                pass
+            
+            login_profile_exists = False
+            try:
+                client.get_login_profile(UserName=name)
+                login_profile_exists = True
+            except ClientError:
+                pass
+
+            users.append({
+                "name": name,
+                "mfa_active": mfa_active,
+                "login_profile_exists": login_profile_exists,
+                "created": u["CreateDate"].isoformat().replace("+00:00", "Z") if u.get("CreateDate") else ""
+            })
+        return {"users": users}
+    except ClientError as e:
+        return {"users": [], "error": str(e)}
+
+def get_ecs_status() -> dict:
+    try:
+        client = boto3.client("ecs", region_name=REGION)
+        resp = client.list_clusters()
+        clusters = []
+        cluster_arns = resp.get("clusterArns", [])
+        if cluster_arns:
+            desc = client.describe_clusters(clusters=cluster_arns)
+            for c in desc.get("clusters", []):
+                clusters.append({
+                    "name": c["clusterName"],
+                    "status": c["status"],
+                    "services_count": c.get("activeServicesCount", 0),
+                    "running_tasks": c.get("runningTasksCount", 0),
+                    "pending_tasks": c.get("pendingTasksCount", 0)
+                })
+        return {"clusters": clusters}
+    except ClientError as e:
+        return {"clusters": [], "error": str(e)}

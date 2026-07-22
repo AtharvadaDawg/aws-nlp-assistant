@@ -14,8 +14,19 @@ const SUGGESTED_QUESTIONS = [
   'What changed in our infrastructure recently?',
 ]
 
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function newSessionId() {
-  return crypto.randomUUID()
+  return generateUUID()
 }
 
 function applyContextFromResponse(response, setContextResource) {
@@ -179,7 +190,7 @@ export default function ChatPage() {
         content: m.content,
       }))
 
-    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'user', content: userMessage }])
+    setMessages((prev) => [...prev, { id: generateUUID(), role: 'user', content: userMessage }])
     setLoading(true)
 
     try {
@@ -189,7 +200,7 @@ export default function ChatPage() {
         setMessages((prev) => [
           ...prev,
           {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             role: 'assistant',
             type: 'action_proposal',
             content: response.answer,
@@ -203,7 +214,7 @@ export default function ChatPage() {
         setMessages((prev) => [
           ...prev,
           {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             role: 'assistant',
             content: response.answer,
             thinking: response.thinking,
@@ -218,7 +229,7 @@ export default function ChatPage() {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'error', content: 'Sorry, something went wrong. Please try again.' },
+        { id: generateUUID(), role: 'error', content: 'Sorry, something went wrong. Please try again.' },
       ])
     } finally {
       setLoading(false)
@@ -236,7 +247,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           role: 'assistant',
           content: result.message || (result.success ? 'Action completed.' : 'Action failed.'),
           skillUsed: result.action,
@@ -245,7 +256,7 @@ export default function ChatPage() {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'error', content: 'Failed to execute action. Please try again.' },
+        { id: generateUUID(), role: 'error', content: 'Failed to execute action. Please try again.' },
       ])
     } finally {
       setConfirmingId(null)
@@ -262,7 +273,7 @@ export default function ChatPage() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           role: 'assistant',
           content: result.message || 'Action cancelled. Nothing was changed.',
         },
@@ -270,7 +281,7 @@ export default function ChatPage() {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'error', content: 'Failed to cancel action. Please try again.' },
+        { id: generateUUID(), role: 'error', content: 'Failed to cancel action. Please try again.' },
       ])
     } finally {
       setConfirmingId(null)

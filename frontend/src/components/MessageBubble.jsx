@@ -138,6 +138,114 @@ export default function MessageBubble({
               </div>
             )}
 
+            {dataType === 'lambda' && (
+              <div className="space-y-2">
+                {data.functions?.map((fn, i) => (
+                  <div key={i} className="text-xs flex items-center justify-between py-1" style={{ borderBottom: '1px solid #222' }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ color: '#00d9ff' }}>λ</span>
+                      <span className="font-bold" style={{ color: '#f0f0f0' }}>{fn.name}</span>
+                      <span style={{ color: '#666' }}>({fn.runtime})</span>
+                    </div>
+                    <span style={{ color: '#888888' }}>{((fn.size_bytes || 0) / 1024 / 1024).toFixed(2)} MB</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {dataType === 'dynamodb' && (
+              <div className="space-y-2">
+                {data.tables?.map((table, i) => (
+                  <div key={i} className="text-xs flex items-center justify-between py-1" style={{ borderBottom: '1px solid #222' }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ color: '#39ff14' }}>📊</span>
+                      <span className="font-bold" style={{ color: '#f0f0f0' }}>{table.name}</span>
+                      <span style={{ color: '#888888' }}>({table.item_count?.toLocaleString()} items)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span style={{ color: '#666' }}>{((table.size_bytes || 0) / 1024 / 1024).toFixed(2)} MB</span>
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 font-bold tracking-wider"
+                        style={{
+                          backgroundColor: table.status === 'ACTIVE' ? '#39ff14' : '#ffff00',
+                          color: '#0a0a0a'
+                        }}
+                      >
+                        {table.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {dataType === 'sqs' && (
+              <div className="space-y-2">
+                {data.queues?.map((queue, i) => (
+                  <div key={i} className="text-xs flex items-center justify-between py-1" style={{ borderBottom: '1px solid #222' }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ color: '#ff006e' }}>✉️</span>
+                      <span className="font-bold" style={{ color: '#f0f0f0' }}>{queue.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span style={{ color: '#888888' }}>
+                        Visible: <strong style={{ color: queue.visible_messages > 0 ? '#ff006e' : '#f0f0f0' }}>{queue.visible_messages}</strong>
+                      </span>
+                      <span style={{ color: '#666' }}>
+                        In-flight: <strong>{queue.invisible_messages}</strong>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {dataType === 'iam' && (
+              <div className="space-y-2">
+                {data.users?.map((user, i) => (
+                  <div key={i} className="text-xs flex items-center justify-between py-1" style={{ borderBottom: '1px solid #222' }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ color: '#00d9ff' }}>👤</span>
+                      <span className="font-bold" style={{ color: '#f0f0f0' }}>{user.name}</span>
+                      {user.login_profile_exists && <span className="text-[9px] px-1 bg-[#222] text-[#888]">CONSOLE ACCESS</span>}
+                    </div>
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 font-bold tracking-wider"
+                      style={{
+                        backgroundColor: user.mfa_active ? '#39ff14' : '#ff006e',
+                        color: user.mfa_active ? '#0a0a0a' : '#f0f0f0'
+                      }}
+                    >
+                      {user.mfa_active ? 'MFA ACTIVE' : 'NO MFA'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {dataType === 'ecs' && (
+              <div className="space-y-2">
+                {data.clusters?.map((cluster, i) => (
+                  <div key={i} className="text-xs flex items-center justify-between py-1" style={{ borderBottom: '1px solid #222' }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ color: '#00d9ff' }}>🐳</span>
+                      <span className="font-bold" style={{ color: '#f0f0f0' }}>{cluster.name}</span>
+                      <span style={{ color: '#666' }}>({cluster.services_count} services)</span>
+                    </div>
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 font-bold tracking-wider"
+                      style={{
+                        backgroundColor: '#333333',
+                        color: '#39ff14'
+                      }}
+                    >
+                      {cluster.running_tasks} RUNNING TASKS
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {dataType === 'savings' && (
               <div className="space-y-3">
                 <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#39ff14' }}>

@@ -21,6 +21,11 @@ SKILLS = {
     "s3_status":       "List S3 buckets, check their region, and audit public access settings",
     "rds_status":      "Check RDS database health, engine type, and running status",
     "cost_optimization": "Audit idle resources, stopped instances, or unattached storage volumes to save costs",
+    "lambda_status":     "Check AWS Lambda functions, runtimes, and status",
+    "dynamodb_status":   "Check DynamoDB tables, item counts, and statuses",
+    "sqs_status":        "Audit SQS queues, active backlogs, and message counts",
+    "iam_status":        "Audit IAM user logins, security compliance, and MFA status",
+    "ecs_status":        "Check ECS clusters, active container services, and task counts",
     # Action skills
     "action_restart":    "Restart a specific service or EC2 instance",
     "action_stop":       "Stop a specific service or EC2 instance",

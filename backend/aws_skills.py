@@ -22,6 +22,11 @@ READ_FETCHERS = {
     "s3_status": lambda _: real_aws.get_s3_status(),
     "rds_status": lambda _: real_aws.get_rds_status(),
     "cost_optimization": lambda _: real_aws.get_cost_optimization(),
+    "lambda_status": lambda _: real_aws.get_lambda_status(),
+    "dynamodb_status": lambda _: real_aws.get_dynamodb_status(),
+    "sqs_status": lambda _: real_aws.get_sqs_status(),
+    "iam_status": lambda _: real_aws.get_iam_status(),
+    "ecs_status": lambda _: real_aws.get_ecs_status(),
 }
 
 MOCK_FETCHERS = {
@@ -33,6 +38,11 @@ MOCK_FETCHERS = {
     "s3_status": lambda _: mock_aws.get_s3_status(),
     "rds_status": lambda _: mock_aws.get_rds_status(),
     "cost_optimization": lambda _: mock_aws.get_cost_optimization(),
+    "lambda_status": lambda _: mock_aws.get_lambda_status(),
+    "dynamodb_status": lambda _: mock_aws.get_dynamodb_status(),
+    "sqs_status": lambda _: mock_aws.get_sqs_status(),
+    "iam_status": lambda _: mock_aws.get_iam_status(),
+    "ecs_status": lambda _: mock_aws.get_ecs_status(),
 }
 
 
@@ -249,10 +259,60 @@ def run_skill(
             },
         }
 
+    elif skill == "lambda_status":
+        raw = _fetch_raw(skill, extracted, use_mock)
+        answer = translate_to_plain_english(question, skill, raw, history)
+        return {
+            "skill_used": skill,
+            "answer": answer,
+            "data_type": "lambda",
+            "data": raw,
+        }
+
+    elif skill == "dynamodb_status":
+        raw = _fetch_raw(skill, extracted, use_mock)
+        answer = translate_to_plain_english(question, skill, raw, history)
+        return {
+            "skill_used": skill,
+            "answer": answer,
+            "data_type": "dynamodb",
+            "data": raw,
+        }
+
+    elif skill == "sqs_status":
+        raw = _fetch_raw(skill, extracted, use_mock)
+        answer = translate_to_plain_english(question, skill, raw, history)
+        return {
+            "skill_used": skill,
+            "answer": answer,
+            "data_type": "sqs",
+            "data": raw,
+        }
+
+    elif skill == "iam_status":
+        raw = _fetch_raw(skill, extracted, use_mock)
+        answer = translate_to_plain_english(question, skill, raw, history)
+        return {
+            "skill_used": skill,
+            "answer": answer,
+            "data_type": "iam",
+            "data": raw,
+        }
+
+    elif skill == "ecs_status":
+        raw = _fetch_raw(skill, extracted, use_mock)
+        answer = translate_to_plain_english(question, skill, raw, history)
+        return {
+            "skill_used": skill,
+            "answer": answer,
+            "data_type": "ecs",
+            "data": raw,
+        }
+
     else:
         return {
             "skill_used": "unknown",
-            "answer": "I'm not sure how to answer that with the AWS data I have access to. Try asking about system health, recent errors, cloud costs, recent changes, service performance, S3, RDS, or cost optimization.",
+            "answer": "I'm not sure how to answer that with the AWS data I have access to. Try asking about system health, recent errors, cloud costs, recent changes, service performance, S3, RDS, cost optimization, Lambda, DynamoDB, SQS, IAM, or ECS.",
             "data_type": None,
             "data": {}
         }
