@@ -21,6 +21,9 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 # Copy backend source code
 COPY backend/ ./backend/
 
+# Copy mock data for simulated mode
+COPY mock-data/ ./mock-data/
+
 # Copy static frontend build files into the runner stage
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 

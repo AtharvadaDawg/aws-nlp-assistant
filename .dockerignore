@@ -12,6 +12,5 @@
 backend/pending_actions.json
 *.docx
 docs/
-mock-data/
 presentations/
 terraform/
