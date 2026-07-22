@@ -69,6 +69,18 @@ def translate_to_plain_english(
     history: Optional[List[Dict[str, str]]] = None,
 ) -> str:
     history_block = _format_history(history)
+    
+    # Check if mock mode is active
+    use_mock = os.getenv("AWS_MOCK", "true").lower() == "true"
+    from aws_client_factory import aws_credentials_context
+    ctx = aws_credentials_context.get()
+    has_dynamic_creds = ctx and ctx.get("access_key_id") and ctx.get("secret_access_key")
+    is_mock = False if has_dynamic_creds else use_mock
+    
+    mock_instruction = ""
+    if is_mock:
+        mock_instruction = "- IMPORTANT: The application is currently running in MOCK mode. You must explicitly start or end your response with a brief, friendly mention that this is simulated/mock data (e.g. \"(Note: This is simulated mock data)\").\n"
+
     prompt = f"""You are an AWS infrastructure assistant helping a NON-TECHNICAL business user.
 
 {history_block}The user asked: "{question}"
@@ -77,7 +89,7 @@ You queried AWS and got this data:
 {json.dumps(raw_data, indent=2)}
 
 Write a clear, friendly, plain-English response. Rules:
-- Never use AWS jargon (no EC2, CloudWatch, IAM, etc.) unless unavoidable
+{mock_instruction}- Never use AWS jargon (no EC2, CloudWatch, IAM, etc.) unless unavoidable
 - If you must use a technical term, explain it in brackets
 - Be concise — 2-4 sentences max unless listing items
 - If there are problems, be clear about their severity
