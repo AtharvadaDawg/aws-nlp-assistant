@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
+from aws_client_factory import get_aws_client
 
 load_dotenv()
 
@@ -12,23 +13,23 @@ REGION = os.getenv("AWS_REGION", "ap-south-1")
 
 
 def _ec2():
-    return boto3.client("ec2", region_name=REGION)
+    return get_aws_client("ec2")
 
 
 def _cloudwatch():
-    return boto3.client("cloudwatch", region_name=REGION)
+    return get_aws_client("cloudwatch")
 
 
 def _logs():
-    return boto3.client("logs", region_name=REGION)
+    return get_aws_client("logs")
 
 
 def _cost_explorer():
-    return boto3.client("ce", region_name="us-east-1")
+    return get_aws_client("ce")
 
 
 def _cloudtrail():
-    return boto3.client("cloudtrail", region_name=REGION)
+    return get_aws_client("cloudtrail")
 
 
 def _instance_name(tags: list) -> str:
@@ -239,7 +240,7 @@ def get_service_metrics(service_name: Optional[str] = None) -> dict:
 
 def get_s3_status() -> dict:
     try:
-        s3 = boto3.client("s3")
+        s3 = get_aws_client("s3")
         resp = s3.list_buckets()
         buckets = []
         for b in resp.get("Buckets", []):
@@ -272,7 +273,7 @@ def get_s3_status() -> dict:
 
 def get_rds_status() -> dict:
     try:
-        rds = boto3.client("rds", region_name=REGION)
+        rds = get_aws_client("rds")
         resp = rds.describe_db_instances()
         db_instances = []
         for db in resp.get("DBInstances", []):
@@ -290,7 +291,7 @@ def get_rds_status() -> dict:
 
 def get_cost_optimization() -> dict:
     try:
-        ec2 = boto3.client("ec2", region_name=REGION)
+        ec2 = get_aws_client("ec2")
         instances_resp = ec2.describe_instances(
             Filters=[{"Name": "instance-state-name", "Values": ["stopped"]}]
         )

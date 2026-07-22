@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function Sidebar({ onNewChat }) {
+export default function Sidebar({ onNewChat, onOpenSettings }) {
   // Mock conversation history
   const conversations = [
     { id: 1, title: 'System Status', time: 'Today' },
@@ -61,6 +61,7 @@ export default function Sidebar({ onNewChat }) {
       {/* Footer */}
       <div className="p-4 border-t space-y-2" style={{ borderColor: '#333333' }}>
         <button
+          onClick={onOpenSettings}
           className="w-full text-left px-3 py-2 text-sm transition-all"
           style={{
             backgroundColor: 'transparent',

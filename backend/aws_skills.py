@@ -147,7 +147,10 @@ def run_skill(
     extracted: dict,
     history: Optional[List[Dict[str, str]]] = None,
 ) -> dict:
-    use_mock = os.getenv("AWS_MOCK", "true").lower() == "true"
+    from aws_client_factory import aws_credentials_context
+    ctx = aws_credentials_context.get()
+    has_dynamic_creds = ctx and ctx.get("access_key_id") and ctx.get("secret_access_key")
+    use_mock = False if has_dynamic_creds else (os.getenv("AWS_MOCK", "true").lower() == "true")
 
     if skill == "system_health":
         raw = _fetch_raw(skill, extracted, use_mock)

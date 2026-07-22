@@ -3,11 +3,19 @@ import json
 import boto3
 from datetime import datetime
 from dotenv import load_dotenv
+from aws_client_factory import get_aws_client
 
 load_dotenv()
 
 MOCK_MODE = os.getenv("AWS_MOCK", "true").lower() == "true"
 REGION = os.getenv("AWS_REGION", "ap-south-1")
+
+def get_active_region() -> str:
+    from aws_client_factory import aws_credentials_context
+    ctx = aws_credentials_context.get()
+    if ctx and ctx.get("region"):
+        return ctx["region"]
+    return REGION
 
 # Instance name → ID mapping from mock data
 MOCK_INSTANCE_MAP = {
@@ -124,7 +132,7 @@ def mock_scale_asg(asg_name: str, desired_capacity: int = 0, scale_by: int = 1) 
 
 def real_restart(instance_id: str, service_name: str) -> dict:
     try:
-        ec2 = boto3.client("ec2", region_name=REGION)
+        ec2 = get_aws_client("ec2")
         ec2.stop_instances(InstanceIds=[instance_id])
         waiter = ec2.get_waiter("instance_stopped")
         waiter.wait(InstanceIds=[instance_id])
@@ -141,7 +149,7 @@ def real_restart(instance_id: str, service_name: str) -> dict:
 
 def real_stop(instance_id: str, service_name: str) -> dict:
     try:
-        ec2 = boto3.client("ec2", region_name=REGION)
+        ec2 = get_aws_client("ec2")
         ec2.stop_instances(InstanceIds=[instance_id])
         return {
             "success": True,
@@ -155,7 +163,7 @@ def real_stop(instance_id: str, service_name: str) -> dict:
 
 def real_alarm(service_name: str, metric: str = "CPUUtilization", threshold: float = 80.0) -> dict:
     try:
-        cw = boto3.client("cloudwatch", region_name=REGION)
+        cw = get_aws_client("cloudwatch")
         alarm_name = f"{service_name}-{metric}-alarm"
         cw.put_metric_alarm(
             AlarmName=alarm_name,
@@ -178,14 +186,14 @@ def real_alarm(service_name: str, metric: str = "CPUUtilization", threshold: flo
 
 def real_create_instance(instance_name: str, instance_type: str = "t3.micro") -> dict:
     try:
-        ssm = boto3.client("ssm", region_name=REGION)
+        ssm = get_aws_client("ssm")
         param = ssm.get_parameter(Name="/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2")
         ami_id = param["Parameter"]["Value"]
     except Exception:
         ami_id = "ami-0522ab6e1ddcc7055"
 
     try:
-        ec2 = boto3.client("ec2", region_name=REGION)
+        ec2 = get_aws_client("ec2")
         resp = ec2.run_instances(
             ImageId=ami_id,
             InstanceType=instance_type,
@@ -215,13 +223,14 @@ def real_create_instance(instance_name: str, instance_type: str = "t3.micro") ->
 
 def real_create_s3_bucket(bucket_name: str) -> dict:
     try:
-        s3 = boto3.client("s3", region_name=REGION)
-        if REGION == "us-east-1":
+        active_region = get_active_region()
+        s3 = get_aws_client("s3")
+        if active_region == "us-east-1":
             s3.create_bucket(Bucket=bucket_name)
         else:
             s3.create_bucket(
                 Bucket=bucket_name,
-                CreateBucketConfiguration={"LocationConstraint": REGION}
+                CreateBucketConfiguration={"LocationConstraint": active_region}
             )
 
         s3.put_public_access_block(
@@ -251,14 +260,14 @@ def real_create_s3_bucket(bucket_name: str) -> dict:
             "success": True,
             "action": "create_s3_bucket",
             "bucket_name": bucket_name,
-            "message": f"✅ Created secure S3 bucket '{bucket_name}' in {REGION} with default encryption and public access blocks active.",
+            "message": f"✅ Created secure S3 bucket '{bucket_name}' in {active_region} with default encryption and public access blocks active.",
         }
     except Exception as e:
         return {"success": False, "message": f"AWS error: {str(e)}"}
 
 def real_rds_snapshot(db_instance_id: str) -> dict:
     try:
-        rds = boto3.client("rds", region_name=REGION)
+        rds = get_aws_client("rds")
         snapshot_id = f"{db_instance_id}-snap-{int(datetime.now().timestamp())}"
         rds.create_db_snapshot(
             DBSnapshotIdentifier=snapshot_id,
@@ -276,7 +285,7 @@ def real_rds_snapshot(db_instance_id: str) -> dict:
 
 def real_scale_asg(asg_name: str, desired_capacity: int = 0, scale_by: int = 1) -> dict:
     try:
-        asg = boto3.client("autoscaling", region_name=REGION)
+        asg = get_aws_client("autoscaling")
         resp = asg.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
         groups = resp.get("AutoScalingGroups", [])
         if not groups:
@@ -305,24 +314,30 @@ def real_scale_asg(asg_name: str, desired_capacity: int = 0, scale_by: int = 1) 
 def build_proposal(skill: str, extracted: dict) -> dict:
     service = extracted.get("service_name") or "the service"
     iid = extracted.get("instance_id") or resolve_instance(service).get("instance_id", "unknown")
-    mode = "MOCK" if MOCK_MODE else "LIVE AWS"
+    
+    from aws_client_factory import aws_credentials_context
+    ctx = aws_credentials_context.get()
+    has_dynamic_creds = ctx and ctx.get("access_key_id") and ctx.get("secret_access_key")
+    is_mock = False if has_dynamic_creds else MOCK_MODE
+    active_region = get_active_region()
+    mode = "MOCK" if is_mock else "LIVE AWS"
 
     proposals = {
         "action_restart": {
             "title": f"Restart {service}",
-            "description": f"Stop and restart {service} ({iid}) in {REGION}. Expect ~30 seconds of downtime.",
+            "description": f"Stop and restart {service} ({iid}) in {active_region}. Expect ~30 seconds of downtime.",
             "risk": "medium",
             "mode": mode
         },
         "action_stop": {
             "title": f"Stop {service}",
-            "description": f"Stop {service} ({iid}) in {REGION}. The service will be unavailable until manually restarted.",
+            "description": f"Stop {service} ({iid}) in {active_region}. The service will be unavailable until manually restarted.",
             "risk": "high",
             "mode": mode
         },
         "action_scale": {
             "title": f"Scale Auto Scaling Group",
-            "description": f"Scale Auto Scaling Group '{extracted.get('asg_name') or service}' to {extracted.get('desired_capacity') or 'desired capacity + ' + str(extracted.get('scale_by', 1))} instances in {REGION}.",
+            "description": f"Scale Auto Scaling Group '{extracted.get('asg_name') or service}' to {extracted.get('desired_capacity') or 'desired capacity + ' + str(extracted.get('scale_by', 1))} instances in {active_region}.",
             "risk": "low",
             "mode": mode
         },
@@ -334,19 +349,19 @@ def build_proposal(skill: str, extracted: dict) -> dict:
         },
         "action_create_instance": {
             "title": "Create EC2 Instance",
-            "description": f"Launch a new {extracted.get('instance_type') or 't3.micro'} instance named '{extracted.get('instance_name') or extracted.get('service_name') or 'new-instance'}' in {REGION}.",
+            "description": f"Launch a new {extracted.get('instance_type') or 't3.micro'} instance named '{extracted.get('instance_name') or extracted.get('service_name') or 'new-instance'}' in {active_region}.",
             "risk": "medium",
             "mode": mode
         },
         "action_create_s3_bucket": {
             "title": "Create S3 Bucket",
-            "description": f"Create a new private S3 bucket named '{extracted.get('bucket_name') or 'new-bucket'}' in {REGION} with default encryption and public access blocks active.",
+            "description": f"Create a new private S3 bucket named '{extracted.get('bucket_name') or 'new-bucket'}' in {active_region} with default encryption and public access blocks active.",
             "risk": "low",
             "mode": mode
         },
         "action_rds_snapshot": {
             "title": "Create RDS DB Snapshot",
-            "description": f"Create a manual backup snapshot for RDS database instance '{extracted.get('db_instance_id') or 'database-primary'}' in {REGION}.",
+            "description": f"Create a manual backup snapshot for RDS database instance '{extracted.get('db_instance_id') or 'database-primary'}' in {active_region}.",
             "risk": "low",
             "mode": mode
         },
@@ -367,14 +382,20 @@ def execute_action(skill: str, extracted: dict, use_real_aws: bool = False) -> d
         return {"success": False, "message": resolved["error"]}
 
     iid = resolved.get("instance_id", "unknown")
+    
+    from aws_client_factory import aws_credentials_context
+    ctx = aws_credentials_context.get()
+    has_dynamic_creds = ctx and ctx.get("access_key_id") and ctx.get("secret_access_key")
+    is_mock = False if has_dynamic_creds else MOCK_MODE
+    run_real = True if has_dynamic_creds else use_real_aws
 
     if skill == "action_restart":
-        if use_real_aws and not MOCK_MODE:
+        if run_real and not is_mock:
             return real_restart(iid, service)
         return mock_restart(service)
 
     elif skill == "action_stop":
-        if use_real_aws and not MOCK_MODE:
+        if run_real and not is_mock:
             return real_stop(iid, service)
         return mock_stop(service)
 
@@ -382,33 +403,33 @@ def execute_action(skill: str, extracted: dict, use_real_aws: bool = False) -> d
         asg_name = extracted.get("asg_name") or service or "order-service"
         desired_capacity = int(extracted.get("desired_capacity") or 0)
         scale_by = int(extracted.get("scale_by") or 1)
-        if use_real_aws and not MOCK_MODE:
+        if run_real and not is_mock:
             return real_scale_asg(asg_name, desired_capacity, scale_by)
         return mock_scale_asg(asg_name, desired_capacity, scale_by)
 
     elif skill == "action_alarm":
         metric = extracted.get("metric_name") or "CPUUtilization"
         threshold = float(extracted.get("threshold") or 80.0)
-        if use_real_aws and not MOCK_MODE:
+        if run_real and not is_mock:
             return real_alarm(service, metric, threshold)
         return mock_alarm(service, metric, threshold)
 
     elif skill == "action_create_instance":
         instance_name = extracted.get("instance_name") or service or "new-instance"
         instance_type = extracted.get("instance_type") or "t3.micro"
-        if use_real_aws and not MOCK_MODE:
+        if run_real and not is_mock:
             return real_create_instance(instance_name, instance_type)
         return mock_create_instance(instance_name, instance_type)
 
     elif skill == "action_create_s3_bucket":
         bucket_name = extracted.get("bucket_name") or "new-bucket"
-        if use_real_aws and not MOCK_MODE:
+        if run_real and not is_mock:
             return real_create_s3_bucket(bucket_name)
         return mock_create_s3_bucket(bucket_name)
 
     elif skill == "action_rds_snapshot":
         db_instance_id = extracted.get("db_instance_id") or "database-primary"
-        if use_real_aws and not MOCK_MODE:
+        if run_real and not is_mock:
             return real_rds_snapshot(db_instance_id)
         return mock_rds_snapshot(db_instance_id)
 

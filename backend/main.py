@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import json
 import os
+from aws_client_factory import aws_credentials_context
 
 load_dotenv()
 
@@ -92,8 +93,24 @@ def list_skills():
         ]
     }
 
+def get_aws_credentials(
+    x_aws_access_key_id: Optional[str] = Header(None),
+    x_aws_secret_access_key: Optional[str] = Header(None),
+    x_aws_region: Optional[str] = Header(None),
+):
+    ctx = {
+        "access_key_id": x_aws_access_key_id,
+        "secret_access_key": x_aws_secret_access_key,
+        "region": x_aws_region
+    }
+    token = aws_credentials_context.set(ctx)
+    try:
+        yield ctx
+    finally:
+        aws_credentials_context.reset(token)
+
 @app.post("/api/chat")
-def chat(body: ChatMessage):
+def chat(body: ChatMessage, creds: dict = Depends(get_aws_credentials)):
     history = [{"role": m.role, "content": m.content} for m in body.history]
     intent    = classify_intent(body.message, history)
     skill     = intent.get("skill", "unknown")
@@ -132,7 +149,7 @@ def chat(body: ChatMessage):
     }
 
 @app.post("/api/confirm")
-def confirm(body: ConfirmAction):
+def confirm(body: ConfirmAction, creds: dict = Depends(get_aws_credentials)):
     print(f"[DEBUG] Confirm called for session '{body.session_id}'")
     print(f"[DEBUG] Pending file exists: {os.path.exists(PENDING_FILE)}")
     print(f"[DEBUG] Current pending: {load_pending()}")

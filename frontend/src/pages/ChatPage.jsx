@@ -53,6 +53,37 @@ export default function ChatPage() {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [awsAccessKey, setAwsAccessKey] = useState('')
+  const [awsSecretKey, setAwsSecretKey] = useState('')
+  const [awsRegion, setAwsRegion] = useState('ap-south-1')
+
+  useEffect(() => {
+    const key = localStorage.getItem('aws_access_key_id') || ''
+    const secret = localStorage.getItem('aws_secret_access_key') || ''
+    const reg = localStorage.getItem('aws_region') || 'ap-south-1'
+    setAwsAccessKey(key)
+    setAwsSecretKey(secret)
+    setAwsRegion(reg)
+  }, [isSettingsOpen])
+
+  const handleSaveSettings = () => {
+    localStorage.setItem('aws_access_key_id', awsAccessKey.trim())
+    localStorage.setItem('aws_secret_access_key', awsSecretKey.trim())
+    localStorage.setItem('aws_region', awsRegion.trim())
+    setIsSettingsOpen(false)
+  }
+
+  const handleClearSettings = () => {
+    localStorage.removeItem('aws_access_key_id')
+    localStorage.removeItem('aws_secret_access_key')
+    localStorage.removeItem('aws_region')
+    setAwsAccessKey('')
+    setAwsSecretKey('')
+    setAwsRegion('ap-south-1')
+    setIsSettingsOpen(false)
+  }
+
   useEffect(() => {
     const initParticles = () => {
       if (window.particlesJS) {
@@ -267,7 +298,7 @@ export default function ChatPage() {
     <div className="flex h-screen overflow-hidden relative" style={{ backgroundColor: '#0a0a0a' }}>
       <div id="particles-js" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0, pointerEvents: 'none' }} />
 
-      <Sidebar onNewChat={handleNewChat} />
+      <Sidebar onNewChat={handleNewChat} onOpenSettings={() => setIsSettingsOpen(true)} />
 
       <div className="flex-1 flex flex-col relative z-10" style={{ backgroundColor: 'transparent' }}>
         <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6">
@@ -384,6 +415,85 @@ export default function ChatPage() {
       </div>
 
       {contextResource && <ContextPanel resource={contextResource} />}
+
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="max-w-md w-full p-6 space-y-6 border" style={{ backgroundColor: '#0a0a0a', borderColor: '#333333' }}>
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold tracking-tight" style={{ color: '#00d9ff' }}>
+                AWS CREDENTIALS
+              </h2>
+              <p className="text-xs" style={{ color: '#888888' }}>
+                Configure session-based credentials for your live AWS account. These are stored locally in your browser.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider" style={{ color: '#f0f0f0' }}>Access Key ID</label>
+                <input
+                  type="text"
+                  value={awsAccessKey}
+                  onChange={(e) => setAwsAccessKey(e.target.value)}
+                  placeholder="AKIA..."
+                  className="w-full px-3 py-2 text-sm font-medium focus:outline-none"
+                  style={{ backgroundColor: '#1a1a1a', color: '#f0f0f0', border: '1px solid #333333' }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider" style={{ color: '#f0f0f0' }}>Secret Access Key</label>
+                <input
+                  type="password"
+                  value={awsSecretKey}
+                  onChange={(e) => setAwsSecretKey(e.target.value)}
+                  placeholder="••••••••••••••••"
+                  className="w-full px-3 py-2 text-sm font-medium focus:outline-none"
+                  style={{ backgroundColor: '#1a1a1a', color: '#f0f0f0', border: '1px solid #333333' }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider" style={{ color: '#f0f0f0' }}>Default Region</label>
+                <input
+                  type="text"
+                  value={awsRegion}
+                  onChange={(e) => setAwsRegion(e.target.value)}
+                  placeholder="ap-south-1"
+                  className="w-full px-3 py-2 text-sm font-medium focus:outline-none"
+                  style={{ backgroundColor: '#1a1a1a', color: '#f0f0f0', border: '1px solid #333333' }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={handleSaveSettings}
+                className="w-full py-2.5 font-bold text-xs tracking-wider transition-all"
+                style={{ backgroundColor: '#00d9ff', color: '#0a0a0a', border: '1px solid #00d9ff', textTransform: 'uppercase' }}
+              >
+                Save & Connect
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClearSettings}
+                  className="flex-1 py-2 font-bold text-xs tracking-wider transition-all"
+                  style={{ backgroundColor: 'transparent', color: '#ff006e', border: '1px solid #ff006e', textTransform: 'uppercase' }}
+                >
+                  Clear Keys
+                </button>
+                <button
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="flex-1 py-2 font-bold text-xs tracking-wider transition-all"
+                  style={{ backgroundColor: 'transparent', color: '#888888', border: '1px solid #333333', textTransform: 'uppercase' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
