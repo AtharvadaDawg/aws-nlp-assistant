@@ -101,7 +101,7 @@ def list_skills():
         ]
     }
 
-def get_aws_credentials(
+async def get_aws_credentials(
     x_aws_access_key_id: Optional[str] = Header(None),
     x_aws_secret_access_key: Optional[str] = Header(None),
     x_aws_region: Optional[str] = Header(None),
